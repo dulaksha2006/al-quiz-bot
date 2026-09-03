@@ -19,18 +19,15 @@ module.exports = {
     "https://raw.githubusercontent.com/dulaksha2006/dulaksha2006/refs/heads/main/ilide.info-media-mcq-book-pr_2ee1c2c3e1fab4cfd1035e522bb88a50.pdf",
   PDF_FILE_NAME: "AL-Media-MCQ-Book.pdf",
 
-  // Firebase (Firestore) config - used to save each user's answers
+  // MongoDB config - used to save each user's answers
   // (keyed by their phone number) as the quiz progresses.
-  FIREBASE_CONFIG: {
-    apiKey: "AIzaSyAZ0cFyyrB4RHvzqsAPUmyPcyUZOpn1bAI",
-    authDomain: "pdf-guwani.firebaseapp.com",
-    projectId: "pdf-guwani",
-    storageBucket: "pdf-guwani.firebasestorage.app",
-    messagingSenderId: "68525002076",
-    appId: "1:68525002076:web:9084851790501531f14599",
-    measurementId: "G-40CWX5Q2EN",
+  // Set the MONGODB_URI environment variable on Railway to override this.
+  MONGODB_CONFIG: {
+    uri:
+      "mongodb+srv://sdulakshacom_db_user:2TxZbBzktrMRx01Q@cluster0.agtc8gu.mongodb.net",
+    dbName: "pdf_guwani",
+    collection: "quiz_responses",
   },
-  FIRESTORE_COLLECTION: "quiz_responses",
 
   // Message texts (Sinhala)
   TEXT: {

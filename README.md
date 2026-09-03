@@ -104,19 +104,18 @@ Railway auto-assign කරන `PORT` variable එක code එකෙන් alread
 
 Notify number එක වෙනස් කරන්න ඕනේ නම් Railway **Variables** tab එකෙන් `NOTIFY_NUMBER` කියලා env variable එකක් දාන්න පුළුවන් (`config.js` දැනට hardcoded කරලා තියෙන්නේ, අවශ්‍ය නම් `process.env.NOTIFY_NUMBER || "94768480793"` විදිහට edit කරන්න).
 
-### `FIREBASE_SERVICE_ACCOUNT` (**මේක නැත්නම් answers Firestore එකට save වෙන්නේ නෑ!**)
+### `MONGODB_URI` (optional — answers save වෙන්නේ MongoDB එකට)
 
-Firestore Security Rules default විදිහට sign-in වෙලා නැති (server-side) requests block කරනවා — ඒක නිසා තමයි Deploy Logs වල `PERMISSION_DENIED: Missing or insufficient permissions` error එක ආවේ. Client SDK එකේ ඉදන් Admin SDK එකට (service account key එකක් පාවිච්චි කරලා Security Rules bypass කරන) මාරු කරලා තියෙන්නේ ඒක නිසා. මේ key එක setup කරගන්න:
+Bot එක දැන් user ලාගේ answers save කරන්නේ MongoDB එකට (Firebase වෙනුවට). Connection string එක `config.js` (`MONGODB_CONFIG.uri`) එකේ දැනටමත් set කරලා තියෙනවා, ඒත් Railway එකේ env variable එකක් විදිහට override කරන්නත් පුළුවන් (ආරක්ෂාකාරී විදිහ මේකයි — connection string එක code එකේ hardcode කරලා තියන්න එපා production වලදී):
 
-1. https://console.firebase.google.com → ඔයාගේ `pdf-guwani` project එක → ⚙️ **Project settings** → **Service accounts** tab
-2. **Generate new private key** ඔබන්න → JSON file එකක් download වෙනවා
-3. ඒ JSON file එකේ මුළු content එකම copy කරගන්න
-4. Railway → Service → **Variables** tab → **New Variable**
-   - Name: `FIREBASE_SERVICE_ACCOUNT`
-   - Value: copy කරගත්තු JSON එක paste කරන්න (whole file, as-is)
-5. Save කරන්න — service එක automatic ව redeploy වෙනවා
+1. Railway → Service → **Variables** tab → **New Variable**
+   - Name: `MONGODB_URI`
+   - Value: ඔයාගේ MongoDB Atlas connection string එක (උදා: `mongodb+srv://user:password@cluster0.xxxxx.mongodb.net`)
+2. Save කරන්න — service එක automatic ව redeploy වෙනවා
 
-> මේ variable එක නැත්නම් bot එක crash වෙන්නේ නෑ (quiz එක තවම වැඩ කරනවා), ඒත් deploy logs වල "⚠️ Firebase Admin init failed" කියලා warning එකක් පෙන්නනවා, සහ user ලාගේ answers Firestore එකට save වෙන්නේ නෑ.
+> Database name එක (`pdf_guwani`) සහ collection name එක (`quiz_responses`) වෙනස් කරන්න ඕනේ නම් `config.js` → `MONGODB_CONFIG` object එක edit කරන්න.
+>
+> MongoDB connect වෙන්නේ නැත්නම් bot එක crash වෙන්නේ නෑ (quiz එක තවම වැඩ කරනවා), ඒත් deploy logs වල "⚠️ MongoDB connection failed" කියලා warning එකක් පෙන්නනවා, සහ user ලාගේ answers save වෙන්නේ නෑ.
 
 ## වෙනත් Server එකකට Deploy කරන්න
 

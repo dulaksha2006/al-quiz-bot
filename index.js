@@ -7,7 +7,7 @@
 //   asking one question at a time with the answer options shuffled
 //   each time so the correct answer isn't always in the same slot.
 //   Each reply is graded immediately (✅/❌ + the correct answer),
-//   saved to Firebase against the user's phone number, and then the
+//   saved to MongoDB against the user's phone number, and then the
 //   next question is sent - until all 150 are done, at which point a
 //   score report is sent along with the source PDF (which also has
 //   essay questions and further correct answers).
@@ -162,7 +162,7 @@ async function startBot() {
     ).trim();
 
     const lower = body.toLowerCase();
-    const phone = from.split("@")[0]; // plain phone number, used as the Firebase key
+    const phone = from.split("@")[0]; // plain phone number, used as the MongoDB key
 
     // True if this message is the user starting/restarting the quiz by
     // typing /start.

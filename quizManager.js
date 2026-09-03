@@ -7,7 +7,7 @@
 // - Tracks per-user progress in memory (keyed by WhatsApp jid).
 // ==========================================
 const questions = require("./questions.json");
-const { saveAnswer, saveFinalReport } = require("./firebase");
+const { saveAnswer, saveFinalReport } = require("./mongodb");
 
 // jid -> { index, score, total, currentOptions, currentQid }
 const sessions = new Map();
