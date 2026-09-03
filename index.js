@@ -1,7 +1,7 @@
 // ==========================================
 // WhatsApp Bot using Baileys
 // - /start  -> asks "අද දවස කොහොමද?" with an "Answers" button
-// - Answers -> shows "හොදයි" / "නරකයි" buttons
+// - Answers -> opens a LIST MENU (single_select) with "හොදයි" / "නරකයි" rows
 // - හොදයි   -> replies with 😄
 // - නරකයි   -> replies with 😢
 // - On successful connection, sends a "connected" message
@@ -118,15 +118,20 @@ async function startBot() {
           [{ id: "answers", text: config.TEXT.START_BUTTON }]
         );
       } else if (lower === "answers" || lower === config.TEXT.START_BUTTON.toLowerCase()) {
-        await sendButtons(
-          sock,
-          from,
-          config.TEXT.ANSWER_PROMPT,
-          [
-            { id: "good", text: config.TEXT.GOOD_BUTTON },
-            { id: "bad", text: config.TEXT.BAD_BUTTON },
-          ]
-        );
+        await sendListMenu(sock, from, {
+          text: config.TEXT.ANSWER_PROMPT,
+          title: "Answers",
+          buttonText: "Tap Here",
+          sections: [
+            {
+              title: "Main Menu",
+              rows: [
+                { id: "good", title: config.TEXT.GOOD_BUTTON },
+                { id: "bad", title: config.TEXT.BAD_BUTTON },
+              ],
+            },
+          ],
+        });
       } else if (lower === "good" || body === config.TEXT.GOOD_BUTTON) {
         await sock.sendMessage(from, { text: config.TEXT.GOOD_REPLY });
       } else if (lower === "bad" || body === config.TEXT.BAD_BUTTON) {
@@ -157,12 +162,47 @@ async function sendButtons(sock, jid, text, options) {
   try {
     await sendInteractiveMessage(sock, jid, {
       text,
-      footer: "Tap a button or reply with the text",
+      footer: "Tap the button to reply",
       interactiveButtons,
     });
   } catch (err) {
     console.error("button-helper failed, falling back to plain text:", err.message);
     const fallbackList = options.map((opt) => `• ${opt.text}`).join("\n");
+    await sock.sendMessage(jid, { text: `${text}\n\n${fallbackList}` });
+  }
+}
+
+// Sends a real WhatsApp "list menu" — one button (e.g. "Tap Here") that,
+// when tapped, opens a scrollable list of options grouped into sections.
+// This uses button-helper's `single_select` native flow so it renders
+// as a genuine list picker instead of side-by-side quick-reply buttons.
+async function sendListMenu(sock, jid, { text, title, buttonText, sections, footer }) {
+  try {
+    await sendInteractiveMessage(sock, jid, {
+      text,
+      footer: footer || "Tap the button to see options",
+      interactiveButtons: [
+        {
+          name: "single_select",
+          buttonParamsJson: JSON.stringify({
+            title: buttonText,
+            sections: sections.map((s) => ({
+              title: s.title,
+              rows: s.rows.map((r) => ({
+                id: r.id,
+                title: r.title,
+                description: r.description || "",
+              })),
+            })),
+          }),
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("List menu failed, falling back to plain text:", err.message);
+    const fallbackList = sections
+      .flatMap((s) => s.rows.map((r) => `• ${r.title}`))
+      .join("\n");
     await sock.sendMessage(jid, { text: `${text}\n\n${fallbackList}` });
   }
 }
