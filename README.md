@@ -4,14 +4,15 @@
 
 ## කරන දේවල්
 
-- `/start` කිව්වම → "අද දවස කොහොමද?" කියලා අහලා **Answers** බටනයක් එවනවා
-- **Answers** එබුවම → **හොදයි** / **නරකයි** කියලා දෙකක් එවනවා
-- **හොදයි** කිව්වොත් → 😄 එවනවා
-- **නරකයි** කිව්වොත් → 😢 එවනවා
+- Bot එකට එන **හැම message එකක්ම** automatic "Seen" (read receipt) කරනවා
+- `/start` කිව්වම → "අද දවස කොහොමද?" කියන ප්‍රශ්නෙයි ඒකට යටින්ම **list menu** එකයි (**තෝරන්න** button එකක් තට්ටු කළම open වෙන list එකක්) එකම message එකකින් යනවා — දෙපාරක් නෙමෙයි එකපාරයි යන්නේ
+- List එකේ **හොදයි** / **නරකයි** කියලා options දෙකක් තියෙනවා
+- **හොදයි** තෝරගත්තොත් → 😄 එවනවා
+- **නරකයි** තෝරගත්තොත් → 😢 එවනවා
 - Bot connect උනාම → `0768480793` කියන number එකට "connected" කියලා message එකක් යනවා
 - Bot එක connect කරගන්න QR code එකක් පෙන්නන web page එකක් තියෙනවා (`http://localhost:3000`)
 
-> **වැදගත් සටහන්:** Buttons real WhatsApp interactive buttons විදිහට යවන්න `@ryuu-reinzz/button-helper` කියන package එක පාවිච්චි කරලා තියෙනවා — Baileys library එකට native buttons send කරන්න පුළුවන් වෙන්නේ නෑ නිසා මේ package එක WhatsApp client එක expect කරන binary node structure එක හදලා දෙනවා. මේක undocumented WhatsApp internals පාවිච්චි කරන package එකක් නිසා, WhatsApp update එකකින් පස්සේ වැඩ නොකරන්නත් පුළුවන්. ඒක නිසා buttons fail උනොත් bot එක automatically plain-text list එකකට fallback වෙනවා (user කෙනෙක්ට "Answers", "හොදයි", "නරකයි" කියලා type කරලත් options තෝරගන්න පුළුවන්).
+> **වැදගත් සටහන්:** List menu එක real WhatsApp interactive message එකක් විදිහට යවන්න `@ryuu-reinzz/button-helper` කියන package එක පාවිච්චි කරලා තියෙනවා — Baileys library එකට native interactive messages send කරන්න පුළුවන් වෙන්නේ නෑ නිසා මේ package එක WhatsApp client එක expect කරන binary node structure එක හදලා දෙනවා. මේක undocumented WhatsApp internals පාවිච්චි කරන package එකක් නිසා, WhatsApp update එකකින් පස්සේ වැඩ නොකරන්නත් පුළුවන්. ඒක නිසා list menu එක fail උනොත් bot එක automatically plain-text list එකකට fallback වෙනවා.
 
 ## Setup කරන විදිය
 
@@ -56,6 +57,16 @@ npm start
 ```
 
 කියලා type කරලා යවන්න.
+
+## QR scan නැතුව reconnect කරගන්න (creds.json Download/Upload)
+
+Volume එකක් setup කරන්න බැරි උනොත් (හෝ අලුත් server එකකට bot එක ගෙනියද්දී), web page එකෙන්ම `creds.json` file එක download/upload කරගන්න පුළුවන්:
+
+- Bot එක connect උනාට පස්සේ, page එකේ **⬇️ Download creds.json** button එක තට්ටු කරලා ඒ file එක save කරගන්න.
+- Bot එක restart උනාට පස්සේ (redeploy එකකින් හෝ session එක නැති උනොත්) QR page එකේ පහළින් තියෙන upload form එකෙන් save කරගත්තු `creds.json` file එක upload කරන්න — QR scan කරන්නම ඕනේ නෑ, bot එක ඒ file එකම පාවිච්චි කරලා ආයෙත් connect වෙනවා.
+- Upload කරගත්තු file එක automatic ව `${AUTH_FOLDER}/creds.json` (default: `auth_info/creds.json`) විදිහට save වෙනවා.
+
+> **සටහන:** මේකෙන් save වෙන්නේ `creds.json` file එකම විතරයි (login/session identity එක). Chat history/contacts වගේ අනිත් sync files auto-generate වෙනවා, ඒවා save වෙන්නේ නෑ — ඒවගේ ප්‍රශ්නයක් නෑ, bot එකට ආයෙත් message handle කරගන්න පුළුවන් වෙනවා. Persistent volume එකක් (පහළින් තියෙන section එක) තියෙනවා නම් ඒක තමයි වඩාත් reliable විදිහ.
 
 ## Railway.com එකට Deploy කරන විදිය
 

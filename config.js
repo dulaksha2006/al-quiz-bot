@@ -15,8 +15,7 @@ module.exports = {
   // Message texts (Sinhala)
   TEXT: {
     START: "අද දවස කොහොමද?",
-    START_BUTTON: "Answers",
-    ANSWER_PROMPT: "තෝරන්න:",
+    LIST_BUTTON: "තෝරන්න",
     GOOD_BUTTON: "හොදයි",
     BAD_BUTTON: "නරකයි",
     GOOD_REPLY: "😄",
