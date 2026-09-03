@@ -46,9 +46,11 @@ function endQuiz(jid) {
   sessions.delete(jid);
 }
 
-// Builds the text for the current question and stores the shuffled
-// options on the session so the next reply can be checked against them.
-function buildQuestionMessage(jid) {
+// Shuffles the current question's options and stores them on the
+// session so the next reply can be checked against them. Returns
+// everything needed to render the question as a tappable list menu:
+//   { questionNumber, total, quizText, options: [{key, title}] }
+function buildQuestionData(jid) {
   const session = sessions.get(jid);
   if (!session) return null;
 
@@ -57,13 +59,12 @@ function buildQuestionMessage(jid) {
   session.currentOptions = opts;
   session.currentQid = q.id;
 
-  let text = `ප්‍රශ්නය ${session.index + 1}/${session.total}\n\n${q.quiz}\n\n`;
-  opts.forEach((o) => {
-    text += `${o.key}) ${o.text}\n`;
-  });
-  text += `\nඋත්තරය A, B, C, D හෝ E ලෙස reply කරන්න.`;
-
-  return text;
+  return {
+    questionNumber: session.index + 1,
+    total: session.total,
+    quizText: q.quiz,
+    options: opts.map((o) => ({ key: o.key, title: o.text })),
+  };
 }
 
 // Accepts "A".."E", "1".."5", or things like "a)"/"C." and normalizes
@@ -129,6 +130,6 @@ module.exports = {
   startQuiz,
   getSession,
   endQuiz,
-  buildQuestionMessage,
+  buildQuestionData,
   processAnswer,
 };

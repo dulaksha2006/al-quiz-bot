@@ -161,12 +161,11 @@ async function startBot() {
         // (Re)starts the 150-question quiz from question 1.
         quiz.startQuiz(from);
         await sock.sendMessage(from, { text: config.TEXT.QUIZ_INTRO });
-        const questionText = quiz.buildQuestionMessage(from);
-        await sock.sendMessage(from, { text: questionText });
+        await sendQuestionListMenu(sock, from);
       } else if (GREETING_RE.test(body.trim())) {
         await sock.sendMessage(from, { text: config.TEXT.GREETING });
       } else if (quiz.getSession(from)) {
-        // The user is mid-quiz - treat this message as their answer (A-E / 1-5).
+        // The user is mid-quiz - treat this message as their tapped answer (A-E).
         const result = await quiz.processAnswer(from, phone, body);
 
         if (!result || result.invalid) {
@@ -199,9 +198,8 @@ async function startBot() {
               });
             }
           } else {
-            // Send the next question.
-            const questionText = quiz.buildQuestionMessage(from);
-            await sock.sendMessage(from, { text: questionText });
+            // Send the next question as a tappable list menu.
+            await sendQuestionListMenu(sock, from);
           }
         }
       }
@@ -211,6 +209,31 @@ async function startBot() {
   });
 
   return sock;
+}
+
+// Sends the current quiz question as a tappable WhatsApp list menu
+// (same "list" style as the original bot) — the question text on top,
+// and a single_select list underneath with the 5 shuffled options
+// (A-E). Tapping a row sends its id (e.g. "C") back as the reply,
+// which quiz.processAnswer() checks against the shuffled options.
+async function sendQuestionListMenu(sock, jid) {
+  const data = quiz.buildQuestionData(jid);
+  if (!data) return;
+
+  await sendListMenu(sock, jid, {
+    text: `ප්‍රශ්නය ${data.questionNumber}/${data.total}\n\n${data.quizText}`,
+    buttonText: "උත්තරය තෝරන්න",
+    footer: "නිවැරදි උත්තරය තෝරන්න",
+    sections: [
+      {
+        title: `ප්‍රශ්නය ${data.questionNumber}`,
+        rows: data.options.map((o) => ({
+          id: o.key,
+          title: `${o.key}) ${o.title}`,
+        })),
+      },
+    ],
+  });
 }
 
 // Sends a real WhatsApp "list menu" — one button (e.g. "තෝරන්න") that,
