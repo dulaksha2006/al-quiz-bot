@@ -11,7 +11,7 @@
 - Bot connect උනාම → `0768480793` කියන number එකට "connected" කියලා message එකක් යනවා
 - Bot එක connect කරගන්න QR code එකක් පෙන්නන web page එකක් තියෙනවා (`http://localhost:3000`)
 
-> **වැදගත් සටහන්:** WhatsApp (Meta) අද වන විට native "buttons" message type එක බොහෝ device වල restrict කරලා තියෙන නිසා සමහර WhatsApp versions වල buttons නොපෙනෙන්න පුළුවන්. ඒක නිසා bot එකේ, button එකක් නොපෙනුනත් user කෙනෙක්ට "Answers", "හොදයි", "නරකයි" කියලා **type කරලත්** ඒම options තෝරගන්න පුළුවන් විදිහට fallback එකක් දාලා තියෙනවා.
+> **වැදගත් සටහන්:** Buttons real WhatsApp interactive buttons විදිහට යවන්න `@ryuu-reinzz/button-helper` කියන package එක පාවිච්චි කරලා තියෙනවා — Baileys library එකට native buttons send කරන්න පුළුවන් වෙන්නේ නෑ නිසා මේ package එක WhatsApp client එක expect කරන binary node structure එක හදලා දෙනවා. මේක undocumented WhatsApp internals පාවිච්චි කරන package එකක් නිසා, WhatsApp update එකකින් පස්සේ වැඩ නොකරන්නත් පුළුවන්. ඒක නිසා buttons fail උනොත් bot එක automatically plain-text list එකකට fallback වෙනවා (user කෙනෙක්ට "Answers", "හොදයි", "නරකයි" කියලා type කරලත් options තෝරගන්න පුළුවන්).
 
 ## Setup කරන විදිය
 

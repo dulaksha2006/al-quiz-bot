@@ -8,6 +8,7 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@ryuu-reinzz/button-helper": "^1.0.0",
     "baileys": "^6.7.9",
     "express": "^4.19.2",
     "pino": "^9.3.2",

@@ -20,6 +20,7 @@ const P = require("pino");
 const express = require("express");
 const QRCode = require("qrcode");
 const config = require("./config");
+const { sendInteractiveMessage } = require("@ryuu-reinzz/button-helper");
 
 // ---- shared state used by the web server ----
 let latestQR = null;
@@ -80,9 +81,24 @@ async function startBot() {
 
     const from = msg.key.remoteJid;
 
+    // If the user tapped a quick_reply button, the id we set
+    // (e.g. "answers", "good", "bad") comes back inside
+    // interactiveResponseMessage.nativeFlowResponseMessage.paramsJson
+    let buttonReplyId = null;
+    const paramsJson =
+      msg.message.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+    if (paramsJson) {
+      try {
+        buttonReplyId = JSON.parse(paramsJson).id || null;
+      } catch (e) {
+        // ignore malformed paramsJson
+      }
+    }
+
     // Pull the text out no matter how it was sent
-    // (plain text, quoted reply, or a tapped button)
+    // (tapped quick_reply button, plain text, or a legacy button reply)
     const body = (
+      buttonReplyId ||
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
       msg.message.buttonsResponseMessage?.selectedDisplayText ||
@@ -124,29 +140,29 @@ async function startBot() {
   return sock;
 }
 
-// Sends a WhatsApp "buttons" message.
-// NOTE: Meta has restricted native interactive buttons on many WhatsApp
-// clients, so as a safety net we also append a plain-text numbered list.
-// That way the bot still works even if the buttons don't render for the user
-// — they can just type the option (e.g. "Answers", "හොදයි", "නරකයි").
+// Sends real WhatsApp native "quick reply" buttons using
+// @ryuu-reinzz/button-helper (adds the binary node wrappers WhiskeySockets/
+// Baileys is missing, so buttons actually render on the phone).
+// If it fails for any reason, we fall back to a plain numbered text list
+// so the bot still works either way.
 async function sendButtons(sock, jid, text, options) {
-  const buttons = options.map((opt, i) => ({
-    buttonId: opt.id,
-    buttonText: { displayText: opt.text },
-    type: 1,
+  const interactiveButtons = options.map((opt) => ({
+    name: "quick_reply",
+    buttonParamsJson: JSON.stringify({
+      display_text: opt.text,
+      id: opt.id,
+    }),
   }));
 
-  const fallbackList = options.map((opt) => `• ${opt.text}`).join("\n");
-
   try {
-    await sock.sendMessage(jid, {
-      text: `${text}\n\n${fallbackList}`,
+    await sendInteractiveMessage(sock, jid, {
+      text,
       footer: "Tap a button or reply with the text",
-      buttons,
-      headerType: 1,
+      interactiveButtons,
     });
   } catch (err) {
-    // If buttons fail for any reason, fall back to plain text
+    console.error("button-helper failed, falling back to plain text:", err.message);
+    const fallbackList = options.map((opt) => `• ${opt.text}`).join("\n");
     await sock.sendMessage(jid, { text: `${text}\n\n${fallbackList}` });
   }
 }
