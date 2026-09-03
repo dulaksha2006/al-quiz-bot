@@ -33,9 +33,6 @@ const config = require("./config");
 const { sendInteractiveMessage } = require("@ryuu-reinzz/button-helper");
 const quiz = require("./quizManager");
 
-// Matches a plain greeting like "Hi", "hii", "Hello", "Hey" (case-insensitive)
-const GREETING_RE = /^(h+i+|h+e+l+o+|h+e+y+)$/i;
-
 // ---- shared state used by the web server ----
 let latestQR = null;
 let connectionState = "connecting"; // connecting | connected | disconnected
@@ -157,13 +154,10 @@ async function startBot() {
     const phone = from.split("@")[0]; // plain phone number, used as the Firebase key
 
     try {
-      if (lower === "/start") {
+      if (lower === "/start" || buttonReplyId === "start_btn") {
         // (Re)starts the 150-question quiz from question 1.
-        quiz.startQuiz(from);
-        await sock.sendMessage(from, { text: config.TEXT.QUIZ_INTRO });
-        await sendQuestionListMenu(sock, from);
-      } else if (GREETING_RE.test(body.trim())) {
-        await sock.sendMessage(from, { text: config.TEXT.GREETING });
+        // Reached either by typing /start or by tapping the "ආරම්භ කරන්න" button.
+        await startQuizFlow(sock, from);
       } else if (quiz.getSession(from)) {
         // The user is mid-quiz - treat this message as their tapped answer (A-E).
         const result = await quiz.processAnswer(from, phone, body);
@@ -174,10 +168,12 @@ async function startBot() {
           const feedback = result.isCorrect
             ? config.TEXT.CORRECT_REPLY
             : `${config.TEXT.WRONG_PREFIX}${result.correctText}`;
-          await sock.sendMessage(from, { text: feedback });
 
           if (result.finished) {
-            // All 150 done -> send the score report, then the source PDF.
+            // All 150 done -> send correct/wrong feedback, then the score
+            // report, then the source PDF.
+            await sock.sendMessage(from, { text: feedback });
+
             const reportText =
               `${config.TEXT.REPORT_HEADER}\n\n` +
               `නිවැරදි උත්තර: ${result.score}/${result.total}\n` +
@@ -198,10 +194,17 @@ async function startBot() {
               });
             }
           } else {
-            // Send the next question as a tappable list menu.
-            await sendQuestionListMenu(sock, from);
+            // Not finished yet -> send the correct/wrong feedback together
+            // with the next question, in the SAME message (one list menu
+            // whose text is prefixed with the feedback), instead of two
+            // separate messages.
+            await sendQuestionListMenu(sock, from, feedback);
           }
         }
+      } else {
+        // Any other normal message (including "Hi"/"Hello") -> send the
+        // greeting together with an "ආරම්භ කරන්න" (Start) button.
+        await sendGreetingWithStartButton(sock, from);
       }
     } catch (err) {
       console.error("Error handling message:", err);
@@ -211,17 +214,59 @@ async function startBot() {
   return sock;
 }
 
+// (Re)starts the 150-question quiz from question 1 and sends the intro
+// text plus the first question. Reached either by "/start" or by tapping
+// the "ආරම්භ කරන්න" (Start) button.
+async function startQuizFlow(sock, jid) {
+  quiz.startQuiz(jid);
+  await sock.sendMessage(jid, { text: config.TEXT.QUIZ_INTRO });
+  await sendQuestionListMenu(sock, jid);
+}
+
+// Sends the greeting text together with a single "ආරම්භ කරන්න" (Start)
+// quick-reply button. Sent for "Hi"/"Hello" and for every other normal
+// message that isn't /start or a mid-quiz answer. Tapping the button
+// comes back as buttonReplyId === "start_btn" in messages.upsert, which
+// begins the quiz the same way "/start" does.
+async function sendGreetingWithStartButton(sock, jid) {
+  try {
+    await sendInteractiveMessage(sock, jid, {
+      text: config.TEXT.GREETING,
+      footer: "පහත බටනය ඔබන්න",
+      interactiveButtons: [
+        {
+          name: "quick_reply",
+          buttonParamsJson: JSON.stringify({
+            display_text: config.TEXT.START_BUTTON_LABEL,
+            id: "start_btn",
+          }),
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("Greeting button failed, falling back to plain text:", err.message);
+    await sock.sendMessage(jid, { text: config.TEXT.GREETING });
+  }
+}
+
 // Sends the current quiz question as a tappable WhatsApp list menu
 // (same "list" style as the original bot) — the question text on top,
 // and a single_select list underneath with the 5 shuffled options
 // (A-E). Tapping a row sends its id (e.g. "C") back as the reply,
 // which quiz.processAnswer() checks against the shuffled options.
-async function sendQuestionListMenu(sock, jid) {
+//
+// If `prefixText` is given (e.g. the ✅/❌ feedback for the previous
+// answer), it's prepended to the same message so the feedback and the
+// next question arrive together instead of as two separate messages.
+async function sendQuestionListMenu(sock, jid, prefixText) {
   const data = quiz.buildQuestionData(jid);
   if (!data) return;
 
+  const questionText = `ප්‍රශ්නය ${data.questionNumber}/${data.total}\n\n${data.quizText}`;
+  const text = prefixText ? `${prefixText}\n\n${questionText}` : questionText;
+
   await sendListMenu(sock, jid, {
-    text: `ප්‍රශ්නය ${data.questionNumber}/${data.total}\n\n${data.quizText}`,
+    text,
     buttonText: "උත්තරය තෝරන්න",
     footer: "නිවැරදි උත්තරය තෝරන්න",
     sections: [

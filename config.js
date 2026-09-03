@@ -36,9 +36,13 @@ module.exports = {
   TEXT: {
     CONNECTED_MSG: "✅ Bot connected!",
 
-    // Sent whenever the user sends a plain greeting like "Hi" / "Hello"
+    // Sent for "Hi"/"Hello" AND for any other normal (unrecognized) message,
+    // along with the "ආරම්භ කරන්න" (Start) button
     GREETING:
-      "HI, A/L Media MCQ ප්‍රශ්න 150ක් තිබේ, ආරම්භ කිරීමට /start ලෙස මැසේජ් එකක් එවන්න.",
+      "HI, A/L Media MCQ ප්‍රශ්න 150ක් තිබේ, ආරම්භ කිරීමට පහත බටනය ඔබන්න (හෝ /start ලෙස මැසේජ් එකක් එවන්න).",
+
+    // Label on the quick-reply button sent together with GREETING
+    START_BUTTON_LABEL: "ආරම්භ කරන්න",
 
     // Sent right after /start, just before the first question
     QUIZ_INTRO: "🎯 Quiz එක ආරම්භයි! ප්‍රශ්න 150ක් තියෙනවා, සාර්ථක වේවා!",

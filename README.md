@@ -104,6 +104,20 @@ Railway auto-assign කරන `PORT` variable එක code එකෙන් alread
 
 Notify number එක වෙනස් කරන්න ඕනේ නම් Railway **Variables** tab එකෙන් `NOTIFY_NUMBER` කියලා env variable එකක් දාන්න පුළුවන් (`config.js` දැනට hardcoded කරලා තියෙන්නේ, අවශ්‍ය නම් `process.env.NOTIFY_NUMBER || "94768480793"` විදිහට edit කරන්න).
 
+### `FIREBASE_SERVICE_ACCOUNT` (**මේක නැත්නම් answers Firestore එකට save වෙන්නේ නෑ!**)
+
+Firestore Security Rules default විදිහට sign-in වෙලා නැති (server-side) requests block කරනවා — ඒක නිසා තමයි Deploy Logs වල `PERMISSION_DENIED: Missing or insufficient permissions` error එක ආවේ. Client SDK එකේ ඉදන් Admin SDK එකට (service account key එකක් පාවිච්චි කරලා Security Rules bypass කරන) මාරු කරලා තියෙන්නේ ඒක නිසා. මේ key එක setup කරගන්න:
+
+1. https://console.firebase.google.com → ඔයාගේ `pdf-guwani` project එක → ⚙️ **Project settings** → **Service accounts** tab
+2. **Generate new private key** ඔබන්න → JSON file එකක් download වෙනවා
+3. ඒ JSON file එකේ මුළු content එකම copy කරගන්න
+4. Railway → Service → **Variables** tab → **New Variable**
+   - Name: `FIREBASE_SERVICE_ACCOUNT`
+   - Value: copy කරගත්තු JSON එක paste කරන්න (whole file, as-is)
+5. Save කරන්න — service එක automatic ව redeploy වෙනවා
+
+> මේ variable එක නැත්නම් bot එක crash වෙන්නේ නෑ (quiz එක තවම වැඩ කරනවා), ඒත් deploy logs වල "⚠️ Firebase Admin init failed" කියලා warning එකක් පෙන්නනවා, සහ user ලාගේ answers Firestore එකට save වෙන්නේ නෑ.
+
 ## වෙනත් Server එකකට Deploy කරන්න
 
 මේ code එක VPS එකක (Ubuntu/Debian), Render වගේ Node.js support කරන server එකකටත් deploy කරන්න පුළුවන් — ඕනෑම තැනක `auth_info` folder එක persist වෙන්න ඕනේ කියන එක මතක තියාගන්න.
