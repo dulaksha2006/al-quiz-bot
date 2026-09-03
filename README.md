@@ -1,0 +1,104 @@
+# WhatsApp Bot (Baileys)
+
+සරල WhatsApp bot එකක් — `baileys` library එක පාවිච්චි කරලා හදලා තියෙන්නේ.
+
+## කරන දේවල්
+
+- `/start` කිව්වම → "අද දවස කොහොමද?" කියලා අහලා **Answers** බටනයක් එවනවා
+- **Answers** එබුවම → **හොදයි** / **නරකයි** කියලා දෙකක් එවනවා
+- **හොදයි** කිව්වොත් → 😄 එවනවා
+- **නරකයි** කිව්වොත් → 😢 එවනවා
+- Bot connect උනාම → `0768480793` කියන number එකට "connected" කියලා message එකක් යනවා
+- Bot එක connect කරගන්න QR code එකක් පෙන්නන web page එකක් තියෙනවා (`http://localhost:3000`)
+
+> **වැදගත් සටහන්:** WhatsApp (Meta) අද වන විට native "buttons" message type එක බොහෝ device වල restrict කරලා තියෙන නිසා සමහර WhatsApp versions වල buttons නොපෙනෙන්න පුළුවන්. ඒක නිසා bot එකේ, button එකක් නොපෙනුනත් user කෙනෙක්ට "Answers", "හොදයි", "නරකයි" කියලා **type කරලත්** ඒම options තෝරගන්න පුළුවන් විදිහට fallback එකක් දාලා තියෙනවා.
+
+## Setup කරන විදිය
+
+### 1. Node.js install කරගන්න
+Node.js version 18 හෝ ඊට වැඩි එකක් ඕනේ. https://nodejs.org
+
+### 2. Dependencies install කරගන්න
+මේ folder එක terminal එකෙන් open කරලා:
+
+```bash
+npm install
+```
+
+### 3. Notify number එක check කරගන්න (අවශ්‍ය නම් වෙනස් කරන්න)
+`config.js` file එකේ:
+
+```js
+NOTIFY_NUMBER: "94768480793",
+```
+
+`0768480793` කියන number එක Sri Lanka country code (`94`) එකත් එක්ක දාලා තියෙන්නේ. Number එක වෙනස් කරන්න ඕනේ නම් මෙතන edit කරන්න (country code එකෙන් පටන් ගන්න ඕනේ, `0` නැතුව).
+
+### 4. Bot එක run කරන්න
+
+```bash
+npm start
+```
+
+### 5. Bot එක connect කරන්න
+
+1. Browser එකෙන් `http://localhost:3000` open කරන්න
+2. QR code එක පෙන්වයි
+3. ඔයාගේ phone එකේ WhatsApp → **Settings → Linked Devices → Link a Device** ගිහින් QR code එක scan කරන්න
+4. Connect උනාම page එකේ "✅ Connected!" කියලා පෙන්වයි, සහ `0768480793` කියන number එකට "connected" message එකක් යනවා
+
+### 6. Bot එක test කරන්න
+
+වෙන phone එකකින් (හෝ ඔයාගේම WhatsApp account එකෙන්) bot connect කරගත්තු number එකට:
+
+```
+/start
+```
+
+කියලා type කරලා යවන්න.
+
+## Railway.com එකට Deploy කරන විදිය
+
+### 1. GitHub එකට push කරන්න
+මේ folder එක GitHub repo එකක් විදිහට push කරන්න (`.gitignore` file එකේ `node_modules` සහ `auth_info` දාලා තියෙනවා, ඒවා push වෙන්නේ නෑ — හොඳයි).
+
+```bash
+git init
+git add .
+git commit -m "WhatsApp bot"
+git branch -M main
+git remote add origin <ඔයාගේ GitHub repo URL එක>
+git push -u origin main
+```
+
+### 2. Railway එකේ project එකක් හදන්න
+1. https://railway.com → **New Project** → **Deploy from GitHub repo**
+2. ඔයාගේ repo එක select කරන්න
+3. Railway auto-detect කරයි (`package.json` + `railway.json` දැක්කම Nixpacks builder එකෙන් build කරගන්නවා, `node index.js` command එකෙන් run කරනවා)
+
+### 3. Persistent Volume එකක් add කරන්න (**වැදගත්!**)
+`auth_info` folder එකේ තමයි WhatsApp login session එක save වෙන්නේ. Volume එකක් නැත්නම් bot එක restart උනාම (deploy කරන හැම වෙලාවකම) ආයෙත් QR scan කරන්න වෙනවා.
+
+1. Railway project එකේ **Settings → Volumes** → **New Volume**
+2. Mount path එකට දාන්න: `/app/auth_info`
+3. Save කරන්න — deploy එක ආයෙත් වෙයි
+
+### 4. Public domain එකක් generate කරන්න (QR code එක scan කරන්න)
+1. Service එකේ **Settings → Networking → Generate Domain**
+2. ලැබෙන URL එක (උදා: `https://your-app.up.railway.app`) browser එකෙන් open කරන්න
+3. QR code එක scan කරලා bot එක connect කරගන්න
+
+### 5. Environment Variables (optional)
+Railway auto-assign කරන `PORT` variable එක code එකෙන් already read කරනවා (`config.js` → `process.env.PORT`), ඒක වෙනස් කරන්න ඕනේ නෑ.
+
+Notify number එක වෙනස් කරන්න ඕනේ නම් Railway **Variables** tab එකෙන් `NOTIFY_NUMBER` කියලා env variable එකක් දාන්න පුළුවන් (`config.js` දැනට hardcoded කරලා තියෙන්නේ, අවශ්‍ය නම් `process.env.NOTIFY_NUMBER || "94768480793"` විදිහට edit කරන්න).
+
+## වෙනත් Server එකකට Deploy කරන්න
+
+මේ code එක VPS එකක (Ubuntu/Debian), Render වගේ Node.js support කරන server එකකටත් deploy කරන්න පුළුවන් — ඕනෑම තැනක `auth_info` folder එක persist වෙන්න ඕනේ කියන එක මතක තියාගන්න.
+
+## Files
+
+- `index.js` — Bot logic + QR web server
+- `config.js` — Settings (notify number, messages, port)
+- `package.json` — Dependencies
