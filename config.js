@@ -35,10 +35,10 @@ module.exports = {
 
     // Sent for "Hi"/"Hello" AND for any other normal (unrecognized) message
     GREETING:
-      "HI, A/L Media MCQ ප්‍රශ්න 150ක් තිබේ, ආරම්භ කිරීමට /start ලෙස මැසේජ් එකක් එවන්න.",
+      "HI, A/L Media MCQ ප්‍රශ්න 150ක් තියෙනවා, පටන් ගන්න `/start` කියලා මැසේජ් එකක් එවන්න..🙃",
 
     // Sent right after /start, just before the first question
-    QUIZ_INTRO: "🎯 Quiz එක ආරම්භයි! ප්‍රශ්න 150ක් තියෙනවා, සාර්ථක වේවා!",
+    QUIZ_INTRO: "🎯 පටාන් ගමු....🙈😃",
 
     ALREADY_RUNNING:
       "⚠️ ඔබ දැනටමත් quiz එකක් කරගෙන යනවා. දිගටම උත්තර දෙන්න, හෝ නැවත ආරම්භ කිරීමට /start යවන්න.",
@@ -46,12 +46,12 @@ module.exports = {
     INVALID_ANSWER:
       "⚠️ කරුණාකර A, B, C, D හෝ E (හෝ 1-5 අංකයක්) ලෙස පිළිතුර reply කරන්න.",
 
-    CORRECT_REPLY: "✅ නිවැරදියි!",
-    WRONG_PREFIX: "❌ වැරදියි! නිවැරදි පිළිතුර: ",
+    CORRECT_REPLY: "> ✅ නිවැරදියි!",
+    WRONG_PREFIX: "> ❌ වැරදියි! නිවැරදි පිළිතුර: ",
 
     REPORT_HEADER: "🎉 ප්‍රශ්න 150ම අවසන් උනා! ඔබගේ ප්‍රතිඵලය:",
 
     PDF_CAPTION:
-      "📘 මූලාශ්‍රය: මෙම PDF එකේ රචනා ප්‍රශ්නත්, ඔබ අහපු MCQ ප්‍රශ්නවලට අදාළ තවත් නිවැරදි පිළිතුරුත් අඩංගු වේ.",
+      "📘 මෙම PDF එකේ රචනා ප්‍රශ්නත්, ඔයාගෙන් මේ වේනකම් අහපු MCQ ප්‍රශ්නවලට අදාළ තවත් නිවැරදි පිළිතුරුත් තියනවා, බලන්න ඒවත්.. 🤞😊",
   },
 };
