@@ -33,6 +33,22 @@ const config = require("./config");
 const { sendInteractiveMessage } = require("@ryuu-reinzz/button-helper");
 const quiz = require("./quizManager");
 
+// ---- global safety nets ----
+// Baileys does some of its own internal handshake calls (e.g. sendPassiveIq
+// right when a connection opens) that are NOT wrapped in our try/catch
+// blocks. If one of those internal calls times out (common on flaky/slow
+// networks), it surfaces as an unhandled promise rejection and Node kills
+// the whole process by default. Since the bot already has its own
+// reconnect logic (see connection.update -> "close" below), we don't want
+// a single timed-out internal call to take the entire service down - so we
+// log these instead of crashing.
+process.on("unhandledRejection", (reason) => {
+  console.error("⚠️ Unhandled rejection (ignored, bot keeps running):", reason?.message || reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("⚠️ Uncaught exception (ignored, bot keeps running):", err?.message || err);
+});
+
 // ---- shared state used by the web server ----
 let latestQR = null;
 let connectionState = "connecting"; // connecting | connected | disconnected
@@ -64,6 +80,13 @@ async function startBot() {
     printQRInTerminal: false, // we show the QR on the web page instead
     logger: P({ level: "silent" }),
     browser: ["Baileys Bot", "Chrome", "1.0"],
+    // Railway's network can be slower/less stable than a home connection,
+    // so give Baileys' internal handshake/query calls (like the passive
+    // IQ sent right after connecting) more time before giving up - this
+    // reduces the frequency of "Timed Out" errors during connection setup.
+    connectTimeoutMs: 60_000,
+    defaultQueryTimeoutMs: 60_000,
+    keepAliveIntervalMs: 15_000,
   });
 
   currentSock = sock;
@@ -93,12 +116,21 @@ async function startBot() {
       latestQR = null;
       console.log("✅ WhatsApp connected!");
 
-      // Notify the configured number that the bot is connected
+      // Notify the configured number that the bot is connected.
+      // Retries once after a short delay since the very first message
+      // right after connecting sometimes times out while WhatsApp is
+      // still settling the session.
+      const jid = `${config.NOTIFY_NUMBER}@s.whatsapp.net`;
       try {
-        const jid = `${config.NOTIFY_NUMBER}@s.whatsapp.net`;
         await sock.sendMessage(jid, { text: config.TEXT.CONNECTED_MSG });
       } catch (err) {
-        console.error("Could not send the connected notification:", err.message);
+        console.error("Could not send the connected notification (retrying once):", err.message);
+        try {
+          await new Promise((r) => setTimeout(r, 5000));
+          await sock.sendMessage(jid, { text: config.TEXT.CONNECTED_MSG });
+        } catch (err2) {
+          console.error("Retry also failed - skipping connected notification:", err2.message);
+        }
       }
     }
   });
