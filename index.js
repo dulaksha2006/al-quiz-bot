@@ -124,10 +124,18 @@ async function startBot() {
     const uniqueId = `${from}_${msg.key.id}`;
     if (alreadyProcessed(uniqueId)) return;
 
-    // If the user tapped a list-menu row, the id we set
-    // (e.g. "good", "bad") comes back inside
-    // interactiveResponseMessage.nativeFlowResponseMessage.paramsJson
+    // If the user tapped a button/list row, the id we set (e.g. "A",
+    // "start_btn") can come back in a few different shapes depending on
+    // the WhatsApp client/version:
+    //  - list menu rows & native quick_reply buttons -> usually
+    //    interactiveResponseMessage.nativeFlowResponseMessage.paramsJson.id
+    //  - some clients report native quick_reply taps as a plain
+    //    buttonsResponseMessage instead, where the id lives in
+    //    selectedButtonId (NOT selectedDisplayText, which is human text)
+    //  - legacy template buttons -> templateButtonReplyMessage.selectedId
+    // We check all of them so a Start-button tap is never missed.
     let buttonReplyId = null;
+
     const paramsJson =
       msg.message.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
     if (paramsJson) {
@@ -138,14 +146,20 @@ async function startBot() {
       }
     }
 
-    // Pull the text out no matter how it was sent
+    if (!buttonReplyId) {
+      buttonReplyId =
+        msg.message.buttonsResponseMessage?.selectedButtonId ||
+        msg.message.templateButtonReplyMessage?.selectedId ||
+        null;
+    }
+
+    // Pull the display text out no matter how it was sent
     // (tapped list row, plain text, or a legacy button reply)
     const body = (
       buttonReplyId ||
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
       msg.message.buttonsResponseMessage?.selectedDisplayText ||
-      msg.message.buttonsResponseMessage?.selectedButtonId ||
       msg.message.templateButtonReplyMessage?.selectedDisplayText ||
       ""
     ).trim();
@@ -153,8 +167,19 @@ async function startBot() {
     const lower = body.toLowerCase();
     const phone = from.split("@")[0]; // plain phone number, used as the Firebase key
 
+    // True if this message is the user starting/restarting the quiz -
+    // either by typing /start, or by tapping the "ආරම්භ කරන්න" button
+    // (covers every reply shape above, plus a plain-text fallback in
+    // case a client ever echoes back the button's display label instead
+    // of its id).
+    const isStartTrigger =
+      lower === "/start" ||
+      buttonReplyId === "start_btn" ||
+      body === config.TEXT.START_BUTTON_LABEL;
+
+
     try {
-      if (lower === "/start" || buttonReplyId === "start_btn") {
+      if (isStartTrigger) {
         // (Re)starts the 150-question quiz from question 1.
         // Reached either by typing /start or by tapping the "ආරම්භ කරන්න" button.
         await startQuizFlow(sock, from);
@@ -204,6 +229,11 @@ async function startBot() {
       } else {
         // Any other normal message (including "Hi"/"Hello") -> send the
         // greeting together with an "ආරම්භ කරන්න" (Start) button.
+        console.log(
+          `Fell through to greeting for ${from}. body=${JSON.stringify(
+            body
+          )} buttonReplyId=${JSON.stringify(buttonReplyId)}`
+        );
         await sendGreetingWithStartButton(sock, from);
       }
     } catch (err) {
