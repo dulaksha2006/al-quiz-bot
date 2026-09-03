@@ -1,10 +1,16 @@
 // ==========================================
 // WhatsApp Bot using Baileys
 // - Every incoming message is marked as "seen" (read receipt)
-// - /start -> asks "අද දවස කොහොමද?" together with a LIST MENU
-//   (single_select) right under it, with "හොදයි" / "නරකයි" rows
-// - හොදයි  -> replies with 😄
-// - නරකයි  -> replies with 😢
+// - "Hi" / "Hello" -> replies with the A/L Media MCQ intro message,
+//   telling the user to send /start to begin the 150-question quiz
+// - /start -> begins the 150-question MCQ quiz (from questions.json),
+//   asking one question at a time with the answer options shuffled
+//   each time so the correct answer isn't always in the same slot.
+//   Each reply is graded immediately (✅/❌ + the correct answer),
+//   saved to Firebase against the user's phone number, and then the
+//   next question is sent - until all 150 are done, at which point a
+//   score report is sent along with the source PDF (which also has
+//   essay questions and further correct answers).
 // - On successful connection, sends a "connected" message
 //   to the configured NOTIFY_NUMBER
 // - A small web page (http://localhost:3000) shows the QR
@@ -25,6 +31,10 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 const { sendInteractiveMessage } = require("@ryuu-reinzz/button-helper");
+const quiz = require("./quizManager");
+
+// Matches a plain greeting like "Hi", "hii", "Hello", "Hey" (case-insensitive)
+const GREETING_RE = /^(h+i+|h+e+l+o+|h+e+y+)$/i;
 
 // ---- shared state used by the web server ----
 let latestQR = null;
@@ -144,27 +154,56 @@ async function startBot() {
     ).trim();
 
     const lower = body.toLowerCase();
+    const phone = from.split("@")[0]; // plain phone number, used as the Firebase key
 
     try {
       if (lower === "/start") {
-        // Question + list menu in ONE message, sent exactly once.
-        await sendListMenu(sock, from, {
-          text: config.TEXT.START,
-          buttonText: config.TEXT.LIST_BUTTON,
-          sections: [
-            {
-              title: "Main Menu",
-              rows: [
-                { id: "good", title: config.TEXT.GOOD_BUTTON },
-                { id: "bad", title: config.TEXT.BAD_BUTTON },
-              ],
-            },
-          ],
-        });
-      } else if (lower === "good" || body === config.TEXT.GOOD_BUTTON) {
-        await sock.sendMessage(from, { text: config.TEXT.GOOD_REPLY });
-      } else if (lower === "bad" || body === config.TEXT.BAD_BUTTON) {
-        await sock.sendMessage(from, { text: config.TEXT.BAD_REPLY });
+        // (Re)starts the 150-question quiz from question 1.
+        quiz.startQuiz(from);
+        await sock.sendMessage(from, { text: config.TEXT.QUIZ_INTRO });
+        const questionText = quiz.buildQuestionMessage(from);
+        await sock.sendMessage(from, { text: questionText });
+      } else if (GREETING_RE.test(body.trim())) {
+        await sock.sendMessage(from, { text: config.TEXT.GREETING });
+      } else if (quiz.getSession(from)) {
+        // The user is mid-quiz - treat this message as their answer (A-E / 1-5).
+        const result = await quiz.processAnswer(from, phone, body);
+
+        if (!result || result.invalid) {
+          await sock.sendMessage(from, { text: config.TEXT.INVALID_ANSWER });
+        } else {
+          const feedback = result.isCorrect
+            ? config.TEXT.CORRECT_REPLY
+            : `${config.TEXT.WRONG_PREFIX}${result.correctText}`;
+          await sock.sendMessage(from, { text: feedback });
+
+          if (result.finished) {
+            // All 150 done -> send the score report, then the source PDF.
+            const reportText =
+              `${config.TEXT.REPORT_HEADER}\n\n` +
+              `නිවැරදි උත්තර: ${result.score}/${result.total}\n` +
+              `ප්‍රතිශතය: ${result.percentage}%`;
+            await sock.sendMessage(from, { text: reportText });
+
+            try {
+              await sock.sendMessage(from, {
+                document: { url: config.PDF_URL },
+                mimetype: "application/pdf",
+                fileName: config.PDF_FILE_NAME,
+                caption: config.TEXT.PDF_CAPTION,
+              });
+            } catch (err) {
+              console.error("Could not send source PDF:", err.message);
+              await sock.sendMessage(from, {
+                text: `${config.TEXT.PDF_CAPTION}\n${config.PDF_URL}`,
+              });
+            }
+          } else {
+            // Send the next question.
+            const questionText = quiz.buildQuestionMessage(from);
+            await sock.sendMessage(from, { text: questionText });
+          }
+        }
       }
     } catch (err) {
       console.error("Error handling message:", err);
