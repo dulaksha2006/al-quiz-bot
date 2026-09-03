@@ -124,16 +124,13 @@ async function startBot() {
     const uniqueId = `${from}_${msg.key.id}`;
     if (alreadyProcessed(uniqueId)) return;
 
-    // If the user tapped a button/list row, the id we set (e.g. "A",
-    // "start_btn") can come back in a few different shapes depending on
-    // the WhatsApp client/version:
-    //  - list menu rows & native quick_reply buttons -> usually
-    //    interactiveResponseMessage.nativeFlowResponseMessage.paramsJson.id
-    //  - some clients report native quick_reply taps as a plain
-    //    buttonsResponseMessage instead, where the id lives in
-    //    selectedButtonId (NOT selectedDisplayText, which is human text)
+    // If the user tapped a quiz list-menu row, the id we set (e.g. "A")
+    // can come back in a couple of different shapes depending on the
+    // WhatsApp client/version:
+    //  - usually interactiveResponseMessage.nativeFlowResponseMessage.paramsJson.id
+    //  - some clients report it as a plain buttonsResponseMessage instead,
+    //    where the id lives in selectedButtonId
     //  - legacy template buttons -> templateButtonReplyMessage.selectedId
-    // We check all of them so a Start-button tap is never missed.
     let buttonReplyId = null;
 
     const paramsJson =
@@ -167,16 +164,9 @@ async function startBot() {
     const lower = body.toLowerCase();
     const phone = from.split("@")[0]; // plain phone number, used as the Firebase key
 
-    // True if this message is the user starting/restarting the quiz -
-    // either by typing /start, or by tapping the "ආරම්භ කරන්න" button
-    // (covers every reply shape above, plus a plain-text fallback in
-    // case a client ever echoes back the button's display label instead
-    // of its id).
-    const isStartTrigger =
-      lower === "/start" ||
-      buttonReplyId === "start_btn" ||
-      body === config.TEXT.START_BUTTON_LABEL;
-
+    // True if this message is the user starting/restarting the quiz by
+    // typing /start.
+    const isStartTrigger = lower === "/start";
 
     try {
       if (isStartTrigger) {
@@ -245,38 +235,28 @@ async function startBot() {
 }
 
 // (Re)starts the 150-question quiz from question 1 and sends the intro
-// text plus the first question. Reached either by "/start" or by tapping
-// the "ආරම්භ කරන්න" (Start) button.
+// text plus the first question. Reached by typing "/start".
 async function startQuizFlow(sock, jid) {
   quiz.startQuiz(jid);
   await sock.sendMessage(jid, { text: config.TEXT.QUIZ_INTRO });
   await sendQuestionListMenu(sock, jid);
 }
 
-// Sends the greeting text together with a single "ආරම්භ කරන්න" (Start)
-// quick-reply button. Sent for "Hi"/"Hello" and for every other normal
-// message that isn't /start or a mid-quiz answer. Tapping the button
-// comes back as buttonReplyId === "start_btn" in messages.upsert, which
-// begins the quiz the same way "/start" does.
+// Sends the greeting text telling the user to send /start. Sent for
+// "Hi"/"Hello" and for every other normal message that isn't /start or a
+// mid-quiz answer.
+//
+// NOTE: this used to also send an "ආරම්භ කරන්න" quick_reply button, but
+// that native-flow button type isn't reliably rendered by WhatsApp on
+// many devices/clients - it gets stuck showing "Waiting for this
+// message" instead of the actual button. That's different from the
+// single_select list menu used for quiz questions below, which WhatsApp
+// does render correctly. Since the greeting now fires on almost every
+// incoming message, that unreliable button became very visible, so it's
+// been dropped in favor of a plain-text instruction to type /start,
+// which always renders correctly.
 async function sendGreetingWithStartButton(sock, jid) {
-  try {
-    await sendInteractiveMessage(sock, jid, {
-      text: config.TEXT.GREETING,
-      footer: "පහත බටනය ඔබන්න",
-      interactiveButtons: [
-        {
-          name: "quick_reply",
-          buttonParamsJson: JSON.stringify({
-            display_text: config.TEXT.START_BUTTON_LABEL,
-            id: "start_btn",
-          }),
-        },
-      ],
-    });
-  } catch (err) {
-    console.error("Greeting button failed, falling back to plain text:", err.message);
-    await sock.sendMessage(jid, { text: config.TEXT.GREETING });
-  }
+  await sock.sendMessage(jid, { text: config.TEXT.GREETING });
 }
 
 // Sends the current quiz question as a tappable WhatsApp list menu
